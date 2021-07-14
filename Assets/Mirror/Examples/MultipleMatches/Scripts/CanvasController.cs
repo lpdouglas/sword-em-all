@@ -131,7 +131,7 @@ namespace Mirror.Examples.MultipleMatch
         public void RequestCreateMatch()
         {
             if (!NetworkClient.active) return;
-
+            Debug.Log("Enviara create match");
             NetworkClient.connection.Send(new ServerMatchMessage { serverMatchOperation = ServerMatchOperation.Create });
         }
 
@@ -433,6 +433,7 @@ namespace Mirror.Examples.MultipleMatch
         void OnServerCreateMatch(NetworkConnection conn)
         {
             if (!NetworkServer.active || playerMatches.ContainsKey(conn)) return;
+            Debug.Log("OnServer CREATE MATCH "+conn);
 
             Guid newMatchId = Guid.NewGuid();
             matchConnections.Add(newMatchId, new HashSet<NetworkConnection>());

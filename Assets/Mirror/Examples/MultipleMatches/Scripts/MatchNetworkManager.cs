@@ -26,6 +26,12 @@ namespace Mirror.Examples.MultipleMatch
             canvasController.InitializeData();
         }
 
+        public override void Start()
+        {
+            base.Start();
+            if (!Application.isBatchMode) StartClient();
+        }
+
         #endregion
 
         #region Server System Callbacks
@@ -74,6 +80,7 @@ namespace Mirror.Examples.MultipleMatch
         /// <param name="conn">Connection to the server.</param>
         public override void OnClientDisconnect(NetworkConnection conn)
         {
+            Debug.LogWarning("Disconected!");
             canvasController.OnClientDisconnect();
             base.OnClientDisconnect(conn);
         }
@@ -119,7 +126,7 @@ namespace Mirror.Examples.MultipleMatch
         {
             canvasController.OnStopClient();
         }
+        #endregion        
 
-        #endregion
     }
 }

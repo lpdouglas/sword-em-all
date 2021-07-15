@@ -3,16 +3,17 @@ using Mirror;
 using System;
 using System.Collections.Generic;
 
-namespace Game.Online
+namespace Game.Multiplayer
 {
     public class LobbyNetworkManager : NetworkManager
     {
-        [SerializeField] Transform[] Spawns;        
-        int playersInCurrentMatch = 0;
-        Guid currentMatch;
-        Dictionary<Guid, HashSet<NetworkConnection>> matches = new Dictionary<Guid, HashSet<NetworkConnection>>();
-        Dictionary<NetworkConnection, Guid> playerHoster = new Dictionary<NetworkConnection, Guid>();
-        Dictionary<Guid, NetworkConnection> matchPlayerHoster = new Dictionary<Guid, NetworkConnection>();
+        public static LobbyNetworkManager instance;
+        [SerializeField] Transform[] Spawns;
+        public GameObject gamePlayer;
+        public GameObject cameraPosition;
+        Match currentMatch;
+        public Dictionary<Guid, Match> matches { get; private set; } = new Dictionary<Guid, Match>();
+        public Dictionary<NetworkConnection, Client> clients { get; private set; } = new Dictionary<NetworkConnection, Client>();
 
         #region Unity Callbacks
 
@@ -27,6 +28,7 @@ namespace Game.Online
         /// </summary>
         public override void Awake()
         {
+            instance = this;
             base.Awake();
         }
 
@@ -131,18 +133,22 @@ namespace Game.Online
         /// <para>Unity calls this on the Server when a Client connects to the Server. Use an override to tell the NetworkManager what to do when a client connects to the server.</para>
         /// </summary>
         /// <param name="conn">Connection from client.</param>
-        public override void OnServerConnect(NetworkConnection conn) {
-            Guid match = currentMatch;
-            
-            if (playersInCurrentMatch>=2) { CreateNewMatch(); }
-            playersInCurrentMatch++;
+        public override void OnServerConnect(NetworkConnection conn) {                        
+            if (currentMatch.players.Count>=currentMatch.maxPlayers) { CreateNewMatch(); }
 
-            if (playersInCurrentMatch == 1) {
-                playerHoster.Add(conn, match);
-                matchPlayerHoster.Add(match, conn);
+            bool host = false;
+            if (currentMatch.host==null) {
+
+                Match matchAddHost = matches[currentMatch.id];
+                matchAddHost.host = conn;
+                matches[currentMatch.id] = matchAddHost;
+                currentMatch = matchAddHost;
+                Debug.Log($"HOST: {matches[currentMatch.id].host} id {conn}");
+                host = true;
                 Debug.Log("Add on host list");
             }
-            matches[match].Add(conn);
+            clients.Add(conn, new Client { matchId=currentMatch.id, isHost=host });
+            currentMatch.players.Add(conn);
 
             Debug.Log("Conectei ao server " + conn);
         }
@@ -154,18 +160,19 @@ namespace Game.Online
         /// <param name="conn">Connection from client.</param>
         public override void OnServerReady(NetworkConnection conn)
         {
-            Guid match = currentMatch;
+            int playersInCurrentMatch = currentMatch.players.Count;
             GameObject player = Instantiate(playerPrefab, Spawns[playersInCurrentMatch-1].position, Spawns[playersInCurrentMatch-1].rotation);
-            player.GetComponent<LobbyPlayer>().matchId = match;
+            player.GetComponent<ConnectionPlayer>().matchId = currentMatch.id;
+            player.GetComponent<ConnectionPlayer>().playerColor  = (new Color[] { Color.red, Color.blue, Color.green, Color.yellow, Color.cyan })[playersInCurrentMatch-1];
+
 
             //if (!NetworkClient.ready) NetworkClient.Ready();
             
             NetworkServer.AddPlayerForConnection(conn, player);
-            conn.identity.AssignClientAuthority(matchPlayerHoster[match]);
 
-            if (playerHoster.ContainsKey(conn))
+            if (clients[conn].isHost)
             {
-                conn.Send(new ClientMessage { message = ClientMessageType.Host });
+                conn.Send(new ToClientMessage { message = ClientMessageType.Host });
             }
             base.OnServerReady(conn);
         }
@@ -187,15 +194,21 @@ namespace Game.Online
         /// <param name="conn">Connection from client.</param>
         public override void OnServerDisconnect(NetworkConnection conn)
         {
-            if (playerHoster.ContainsKey(conn))
+            Client client;
+            if (clients.TryGetValue(conn, out client) && matches.ContainsKey(client.matchId))
             {
-                //TODO player é host de uma partida. deve então finalizá-la ou trocar o host
-                playerHoster.Remove(conn);
-                matchPlayerHoster.Remove(currentMatch);
+                Match match = matches[client.matchId];
+                matches[match.id].players.Remove(conn);
+
+                if (client.isHost && match.players.Count>0)
+                {
+                    //TODO player é host de uma partida. deve então finalizá-la ou trocar o host
+                    //match.players.GETSOMEOTHERPLAYER.Send(new ClientMessage { message = ClientMessageType.Host });
+                }
+
+                clients.Remove(conn);
             }
-            if (matches.ContainsKey(currentMatch)) { 
-                matches[currentMatch].Remove(conn);
-            }
+            
             base.OnServerDisconnect(conn);
         }
 
@@ -210,7 +223,7 @@ namespace Game.Online
         /// <param name="conn">Connection to the server.</param>
         public override void OnClientConnect(NetworkConnection conn)
         {
-            LobbyPlayer.inGame = true;
+            ConnectionPlayer.inGame = true;
             Debug.Log("Conectei ao server");
             
             base.OnClientConnect(conn);
@@ -223,7 +236,9 @@ namespace Game.Online
         /// <param name="conn">Connection to the server.</param>
         public override void OnClientDisconnect(NetworkConnection conn)
         {
-            LobbyPlayer.inGame = false;
+            ConnectionPlayer.inGame = false;
+            Debug.Log("!");
+            Destroy(conn.identity.GetComponent<ConnectionPlayer>().player);
             base.OnClientDisconnect(conn);
         }
 
@@ -261,14 +276,14 @@ namespace Game.Online
         /// </summary>
         public override void OnStartClient() {
             Debug.Log("START CLIENT register");
-            NetworkClient.RegisterHandler<ClientMessage>(OnClientMessage);
+            NetworkClient.RegisterHandler<ToClientMessage>(OnClientMessage);
         }
 
-        void OnClientMessage(ClientMessage clientMessage)
+        void OnClientMessage(ToClientMessage clientMessage)
         {
             switch (clientMessage.message)
             {
-                case ClientMessageType.Host: LobbyPlayer.isHost = true; Debug.Log("Entendi a responsa, capitão"); break;
+                case ClientMessageType.Host: ConnectionPlayer.MakeHost(); Debug.Log("Entendi a responsa, capitão"); break;
                 default : Debug.LogError("Missing message type");break; 
             }
         }
@@ -288,34 +303,67 @@ namespace Game.Online
         /// <summary>
         /// This is called when a client is stopped.
         /// </summary>
-        public override void OnStopClient() { }
+        public override void OnStopClient() {
+            foreach(Player objs in FindObjectsOfType<Player>())
+            {
+                Destroy(objs.gameObject);
+            }
+        }
 
         #endregion
 
         void CreateNewMatch()
         {
-            currentMatch = Guid.NewGuid();
-            playersInCurrentMatch = 0;
-            matches.Add(currentMatch, new HashSet<NetworkConnection>());
+            currentMatch = new Match { id = Guid.NewGuid(), players = new HashSet<NetworkConnection>(), status = MatchStatus.Waiting, maxPlayers=3 };
+            matches.Add(currentMatch.id, currentMatch);
         }
 
         void RemoveAllMatches()
         {
             matches.Clear();
-            playersInCurrentMatch = 0;
-            currentMatch = Guid.Empty;
+            currentMatch = Match.empty;
         }
+        
     }
 
-    public struct ClientMessage : NetworkMessage
+    public struct Match
+    {
+        public Guid id;
+        public HashSet<NetworkConnection> players;
+        public NetworkConnection host;
+        public int maxPlayers;
+        public MatchStatus status;
+        public static Match empty { get => new Match { id = Guid.Empty }; }
+        public Match setHost(NetworkConnection conn) { host = conn; return this; }
+    }
+
+    public struct Client
+    {
+        public Guid matchId;
+        public bool isHost;
+    }
+
+    public enum MatchStatus
+    {
+        Waiting, OnGame
+    }
+
+    public struct ToClientMessage : NetworkMessage
     {
         public ClientMessageType message;
     }
 
-
     public enum ClientMessageType
     {
         None,
-        Host
+        Host,
+        ClientsCommands
+    }
+    
+    public enum ServerMessageType
+    {
+        None,
+        Host,
+        ClientsUpdate
     }
 }

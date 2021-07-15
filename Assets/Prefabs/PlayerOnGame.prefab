@@ -9,11 +9,10 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2521441300942652027}
-  - component: {fileID: 4440951101591836285}
   - component: {fileID: 2764778515492935043}
   - component: {fileID: 1918281398470330174}
   m_Layer: 0
-  m_Name: LobbyPlayer
+  m_Name: PlayerOnGame
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -34,20 +33,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &4440951101591836285
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1915707441114837439}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5f74960883e5748428cfeb86ab1a7311, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  syncMode: 0
-  syncInterval: 0.1
 --- !u!114 &2764778515492935043
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -77,8 +62,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7677eca5c4d269c409fa3c452805eb25, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  syncMode: 0
-  syncInterval: 0.1
   speed: 10
 --- !u!1 &9173969276212655092
 GameObject:
@@ -141,7 +124,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: b04571ca241083f45825f71cb00f03af, type: 2}
+  - {fileID: 2100000, guid: 4d83bd7777846634c92f4e30663f0c51, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

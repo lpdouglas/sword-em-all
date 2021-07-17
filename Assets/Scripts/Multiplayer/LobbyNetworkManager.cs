@@ -10,6 +10,7 @@ namespace Game.Multiplayer
         public static LobbyNetworkManager instance;
         [SerializeField] Transform[] Spawns;
         public GameObject gamePlayer;
+        public NetObject[] netObjects;
         public GameObject cameraPosition;
         Match currentMatch;
         public Dictionary<Guid, Match> matches { get; private set; } = new Dictionary<Guid, Match>();
@@ -162,8 +163,11 @@ namespace Game.Multiplayer
         {
             int playersInCurrentMatch = currentMatch.players.Count;
             GameObject player = Instantiate(playerPrefab, Spawns[playersInCurrentMatch-1].position, Spawns[playersInCurrentMatch-1].rotation);
-            player.GetComponent<ConnectionPlayer>().matchId = currentMatch.id;
-            player.GetComponent<ConnectionPlayer>().playerColor  = (new Color[] { Color.red, Color.blue, Color.green, Color.yellow, Color.cyan })[playersInCurrentMatch-1];
+
+            ConnectionPlayer connPlayer = player.GetComponent<ConnectionPlayer>();
+            connPlayer.matchId = currentMatch.id;
+            connPlayer.isHostOnServer = true;
+            connPlayer.playerColor  = (new Color[] { Color.red, Color.blue, Color.green, Color.yellow, Color.cyan })[playersInCurrentMatch-1];
 
 
             //if (!NetworkClient.ready) NetworkClient.Ready();
@@ -237,7 +241,7 @@ namespace Game.Multiplayer
         public override void OnClientDisconnect(NetworkConnection conn)
         {
             ConnectionPlayer.inGame = false;
-            Debug.Log("!");
+            Debug.Log("client disconected!");
             Destroy(conn.identity.GetComponent<ConnectionPlayer>().player);
             base.OnClientDisconnect(conn);
         }
@@ -283,7 +287,7 @@ namespace Game.Multiplayer
         {
             switch (clientMessage.message)
             {
-                case ClientMessageType.Host: ConnectionPlayer.MakeHost(); Debug.Log("Entendi a responsa, capitão"); break;
+                case ClientMessageType.Host: ConnectionPlayer.MakeConnectionHost(); Debug.Log("Entendi a responsa, capitão"); break;
                 default : Debug.LogError("Missing message type");break; 
             }
         }
@@ -314,7 +318,7 @@ namespace Game.Multiplayer
 
         void CreateNewMatch()
         {
-            currentMatch = new Match { id = Guid.NewGuid(), players = new HashSet<NetworkConnection>(), status = MatchStatus.Waiting, maxPlayers=3 };
+            currentMatch = new Match { id = Guid.NewGuid(), players = new HashSet<NetworkConnection>(), status = MatchStatus.Waiting, maxPlayers=4 };
             matches.Add(currentMatch.id, currentMatch);
         }
 

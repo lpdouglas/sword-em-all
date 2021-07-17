@@ -11,11 +11,14 @@ namespace Game.Multiplayer
     {
         public static bool inGame = false;
         public static bool isHost;
+        public bool isHostOnServer;
         public Guid matchId;
         float intervalSend = 0.03f;
         float lastInterval;
         public Player player;
-        public static Dictionary<uint, Player> playersClients = new Dictionary<uint, Player>();
+        public NetObject ball;
+        static Dictionary<uint, Player> playersClients = new Dictionary<uint, Player>();
+        static Dictionary<uint, NetObject> netObjects = new Dictionary<uint, NetObject>();
         PlayerInput lastInputSended;
         [SyncVar(hook = nameof(OnChangeVarPlayerColor))] public Color playerColor;
         
@@ -24,7 +27,7 @@ namespace Game.Multiplayer
         {
             if (isClient)
             player = Instantiate(LobbyNetworkManager.instance.gamePlayer, transform.position, transform.rotation).GetComponent<Player>();
-            playersClients.Add(netId, player);
+            playersClients.Add(netId, player);            
             ChangePlayerColor(playerColor);
             if (isLocalPlayer && LobbyNetworkManager.instance.cameraPosition != null) LobbyNetworkManager.instance.cameraPosition.transform.rotation = transform.rotation;
         }
@@ -41,6 +44,13 @@ namespace Game.Multiplayer
             if (!isLocalPlayer) return;
             
             player.input.x = Input.GetAxis("Horizontal");
+            if (isHost && Input.GetButtonDown("Fire1"))
+            {
+                NetObject netBall = Instantiate(ball, Vector3.zero, Quaternion.Euler(new Vector3(0, UnityEngine.Random.Range(0,360), 0)));
+                Debug.Log("Pos instantiate log id: "+netBall.id);
+                Spawn(netBall);
+                netObjects.Add(netBall.id, netBall);
+            }
 
             ///UPDATE MULTIPLAYER
             if (lastInterval > Time.time) return;
@@ -48,13 +58,19 @@ namespace Game.Multiplayer
             
             if (isHost)
             {
-                List<PlayerCmdPositions> playersUpdatePosition = new List<PlayerCmdPositions>();
+                List<PlayerCmdPositions> playersPositionList = new List<PlayerCmdPositions>();
                 foreach (KeyValuePair<uint, Player> player in playersClients)
                 {
-                    playersUpdatePosition.Add(new PlayerCmdPositions { id=player.Key, position=player.Value.transform.position });
+                    playersPositionList.Add(new PlayerCmdPositions { id=player.Key, position=player.Value.transform.position });
                 }
-
-                CmdHostSendAllPositions(playersUpdatePosition);
+                
+                List<NetObjectCmdPositions> netObjectsList = new List<NetObjectCmdPositions>();
+                foreach (KeyValuePair<uint, NetObject> netObject in netObjects)
+                {
+                    netObjectsList.Add(new NetObjectCmdPositions { id=netObject.Key, position=netObject.Value.transform.position});
+                }
+                
+                CmdHostSendAllPositions(playersPositionList, netObjectsList);
             } else
             {
                 if (!lastInputSended.Equals(player.input))
@@ -68,21 +84,33 @@ namespace Game.Multiplayer
         }
 
         [Command]
-        void CmdHostSendAllPositions(List<PlayerCmdPositions> playersPosition)
-        {            
-            RpcUpdateAllPosition(playersPosition);
+        void CmdHostSendAllPositions(List<PlayerCmdPositions> playersPosition, List<NetObjectCmdPositions> netObjectCmdPositions)
+        {
+            if (!isHostOnServer) { Debug.LogError("Apenas o host pode spawnar"); return; }
+            RpcUpdateAllPosition(playersPosition, netObjectCmdPositions);
         }
         
         [ClientRpc]
-        void RpcUpdateAllPosition(List<PlayerCmdPositions> playersPosition)
+        void RpcUpdateAllPosition(List<PlayerCmdPositions> playersPosition, List<NetObjectCmdPositions> netObjectsCmdPositions)
         {
-            if (isHost) return;
+            if (isHost) return;           
+
             foreach (PlayerCmdPositions playerPositions in playersPosition)
             {
                 Player player1;
                 if (playersClients.TryGetValue(playerPositions.id, out player1))
                 {
                     player1.transform.position = playerPositions.position;
+                }
+            }
+            
+            foreach (NetObjectCmdPositions netObjectCmd in netObjectsCmdPositions)
+            {                
+                NetObject netObject1;
+                if (netObjects.TryGetValue(netObjectCmd.id, out netObject1))
+                {
+                    Debug.Log(netObject1);
+                    netObject1.transform.position = netObjectCmd.position;
                 }
             }
         }
@@ -100,7 +128,7 @@ namespace Game.Multiplayer
 
         [TargetRpc]
         void TargetHostGetInputs(NetworkConnection target, PlayerCmdInput playerCmd) {
-            if (!isHost) Debug.LogError("Isso só deveria chegar no host...");
+            if (!isHost) { Debug.LogError("Isso só deveria chegar no host..."); return; }
 
             Player playerClient;
             if (playersClients.TryGetValue(playerCmd.id, out playerClient))
@@ -109,16 +137,40 @@ namespace Game.Multiplayer
             }
         }
 
-        internal static void MakeHost()
+        void Spawn(NetObject netObject)
         {
-            isHost = true;
+            CmdSpawn(netObject.guidAssetId, netObject.id, netObject.transform.position, netObject.transform.rotation, netObject.transform.localScale);
         }
 
-        void OnChangeVarPlayerColor(Color old, Color color)
+        [Command]
+        void CmdSpawn(Guid assetId, uint netId, Vector3 position, Quaternion rotation, Vector3 scale)
         {
-            ChangePlayerColor(color);
+            if (!isHostOnServer) { Debug.LogError("Apenas o host pode spawnar"); return; }
+            RpcSpawn(assetId, netId, position, rotation, scale);
+        }
+        
+        [ClientRpc]
+        void RpcSpawn(Guid assetId, uint netId, Vector3 position, Quaternion rotation, Vector3 scale)
+        {
+            if (isHost) return;
+
+            NetObject[] netObjectsAll = LobbyNetworkManager.instance.netObjects;
+            foreach(NetObject netObject in netObjectsAll)
+            {
+                if (netObject.guidAssetId.Equals(assetId))
+                {
+                    NetObject netObjectOnGame = Instantiate(netObject, position, rotation);
+                    netObjectOnGame.transform.localScale = scale;
+                    netObjectOnGame.id = netId;
+                    netObjects.Add(netId, netObjectOnGame);
+                    break;
+                }
+            }
+            
         }
 
+        internal static void MakeConnectionHost() => isHost = true;        
+        void OnChangeVarPlayerColor(Color old, Color color) => ChangePlayerColor(color);
         private void ChangePlayerColor(Color color)
         {
             if (player) player.gameObject.GetComponentInChildren<Renderer>().material.color = color;
@@ -130,6 +182,13 @@ public struct PlayerCmdPositions
 {
     public uint id;
     public Vector3 position;
+}
+
+public struct NetObjectCmdPositions
+{
+    public uint id;
+    public Vector3 position;
+    public Vector3 velocity;
 }
 
 public struct PlayerCmdInput

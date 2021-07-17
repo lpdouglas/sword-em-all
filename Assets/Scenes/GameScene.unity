@@ -328,7 +328,7 @@ GameObject:
   - component: {fileID: 227498023}
   - component: {fileID: 227498022}
   - component: {fileID: 227498021}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Corner DL P1-3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -345,7 +345,8 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -5, y: 0, z: -5}
   m_LocalScale: {x: 3, y: 2, z: 3}
-  m_Children: []
+  m_Children:
+  - {fileID: 1192907206}
   m_Father: {fileID: 1862849598}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -425,7 +426,7 @@ GameObject:
   - component: {fileID: 240574135}
   - component: {fileID: 240574134}
   - component: {fileID: 240574133}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Corner UR P2-4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -618,7 +619,7 @@ GameObject:
   - component: {fileID: 548211898}
   - component: {fileID: 548211897}
   - component: {fileID: 548211896}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Corner UL P2-3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -939,6 +940,88 @@ Transform:
   m_Father: {fileID: 44243342}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 60, y: 0, z: 0}
+--- !u!1 &1192907205
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1192907206}
+  - component: {fileID: 1192907208}
+  - component: {fileID: 1192907207}
+  m_Layer: 0
+  m_Name: Launcher
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1192907206
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1192907205}
+  m_LocalRotation: {x: 0.73296213, y: 0.23296289, z: -0.3036034, w: 0.5624231}
+  m_LocalPosition: {x: 0.25, y: 1.125, z: 0.25}
+  m_LocalScale: {x: 0.2, y: 0.2, z: 0.2}
+  m_Children: []
+  m_Father: {fileID: 227498020}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 105, y: 45, z: 0}
+--- !u!23 &1192907207
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1192907205}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 5718e14f5196e244785cfbba3bbc07e6, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &1192907208
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1192907205}
+  m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &1272536379
 GameObject:
   m_ObjectHideFlags: 0
@@ -1163,7 +1246,7 @@ GameObject:
   - component: {fileID: 1533811910}
   - component: {fileID: 1533811909}
   - component: {fileID: 1533811908}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Corner DR P1-4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1350,13 +1433,16 @@ MonoBehaviour:
   playerPrefab: {fileID: 1915707441114837439, guid: cdacc14839cdfc7478edcfc2ddd78b57, type: 3}
   autoCreatePlayer: 0
   playerSpawnMethod: 0
-  spawnPrefabs: []
+  spawnPrefabs:
+  - {fileID: 0}
   Spawns:
   - {fileID: 1272536380}
   - {fileID: 915135537}
   - {fileID: 1939699234}
   - {fileID: 746482536}
   gamePlayer: {fileID: 1915707441114837439, guid: 8f2cb3ed22e273e4c8152e68dd03d022, type: 3}
+  netObjects:
+  - {fileID: 6511849364844937226, guid: 94d73c5958dddd34baafe6099d22e466, type: 3}
   cameraPosition: {fileID: 44243341}
 --- !u!114 &1591612150
 MonoBehaviour:
@@ -1677,7 +1763,7 @@ GameObject:
   - component: {fileID: 2042201375}
   - component: {fileID: 2042201374}
   - component: {fileID: 2042201373}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Floor
   m_TagString: Untagged
   m_Icon: {fileID: 0}

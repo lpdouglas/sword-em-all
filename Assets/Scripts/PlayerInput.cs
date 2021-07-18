@@ -1,4 +1,4 @@
-namespace Game
+namespace TGM
 {
     public struct PlayerInput
     {

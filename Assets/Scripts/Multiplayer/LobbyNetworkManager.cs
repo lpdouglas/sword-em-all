@@ -3,7 +3,7 @@ using Mirror;
 using System;
 using System.Collections.Generic;
 
-namespace Game.Multiplayer
+namespace TGM.Multiplayer
 {
     public class LobbyNetworkManager : NetworkManager
     {
@@ -177,6 +177,9 @@ namespace Game.Multiplayer
             if (clients[conn].isHost)
             {
                 conn.Send(new ToClientMessage { message = ClientMessageType.Host });
+            } else
+            {
+                conn.Send(new ToClientMessage { message = ClientMessageType.Client });
             }
             base.OnServerReady(conn);
         }
@@ -227,9 +230,7 @@ namespace Game.Multiplayer
         /// <param name="conn">Connection to the server.</param>
         public override void OnClientConnect(NetworkConnection conn)
         {
-            ConnectionPlayer.inGame = true;
-            Debug.Log("Conectei ao server");
-            
+            Debug.Log("Conectei ao server");            
             base.OnClientConnect(conn);
         }
 
@@ -240,9 +241,16 @@ namespace Game.Multiplayer
         /// <param name="conn">Connection to the server.</param>
         public override void OnClientDisconnect(NetworkConnection conn)
         {
+            
             ConnectionPlayer.inGame = false;
+            ConnectionPlayer.OnDisconnect();
             Debug.Log("client disconected!");
-            Destroy(conn.identity.GetComponent<ConnectionPlayer>().player);
+            if (conn.identity!=null) Destroy(conn.identity.GetComponent<ConnectionPlayer>().player);
+            else
+            {
+                Debug.Log("Error On Connect Server");
+                ScreenGui.ShowError("Failed To Connect on Server");
+            }
             base.OnClientDisconnect(conn);
         }
 
@@ -272,7 +280,9 @@ namespace Game.Multiplayer
         /// <para>StartServer has multiple signatures, but they all cause this hook to be called.</para>
         /// </summary>
         public override void OnStartServer() {
+            ScreenGui.OnStartServer();
             CreateNewMatch();
+            NetworkServer.RegisterHandler<ToServerMessage>(OnServerMessage);
         }
 
         /// <summary>
@@ -287,7 +297,32 @@ namespace Game.Multiplayer
         {
             switch (clientMessage.message)
             {
-                case ClientMessageType.Host: ConnectionPlayer.MakeConnectionHost(); Debug.Log("Entendi a responsa, capitão"); break;
+                case ClientMessageType.Host: ConnectionPlayer.MakeHost(true); ScreenGui.OnClientConnect(); Debug.Log("Entendi a responsa, capitão"); break;
+                case ClientMessageType.Client: ConnectionPlayer.MakeHost(false); ScreenGui.OnClientConnect(); Debug.Log("Clientzin"); break;
+                case ClientMessageType.StartMatch: ConnectionPlayer.StartGame(); ScreenGui.OnStartMatch() ; Debug.Log("E começa a peleja"); break;
+                default : Debug.LogError("Missing message type");break; 
+            }
+        }
+        void OnServerMessage(NetworkConnection conn, ToServerMessage serverMessage)
+        {
+            switch (serverMessage.message)
+            {
+                case ServerMessageType.StartMatch:
+                    Client client;
+                    if (clients.TryGetValue(conn, out client) && client.isHost)
+                    {
+                        foreach (NetworkConnection player in matches[client.matchId].players)
+                        {
+                            Match match = matches[client.matchId];
+                            match.status = MatchStatus.OnGame;
+                            matches[client.matchId] = match;
+                            CreateNewMatch();
+                            player.Send(new ToClientMessage { message = ClientMessageType.StartMatch });
+                        }
+                        Debug.Log("Start Match!");
+                    }
+                    
+                    break;
                 default : Debug.LogError("Missing message type");break; 
             }
         }
@@ -312,6 +347,8 @@ namespace Game.Multiplayer
             {
                 Destroy(objs.gameObject);
             }
+            ScreenGui.OnStopClient();
+            ConnectionPlayer.OnDisconnect();
         }
 
         #endregion
@@ -326,6 +363,11 @@ namespace Game.Multiplayer
         {
             matches.Clear();
             currentMatch = Match.empty;
+        }
+
+        public void StartMatch()
+        {
+            NetworkClient.connection.Send(new ToServerMessage { message = ServerMessageType.StartMatch});
         }
         
     }
@@ -356,18 +398,26 @@ namespace Game.Multiplayer
     {
         public ClientMessageType message;
     }
-
+    
     public enum ClientMessageType
     {
         None,
         Host,
+        Client,
+        StartMatch,
         ClientsCommands
     }
-    
+
+    public struct ToServerMessage : NetworkMessage
+    {
+        public ServerMessageType message;
+    }
+
     public enum ServerMessageType
     {
         None,
-        Host,
-        ClientsUpdate
+        StartMatch,
+        CancelMatch
     }
+
 }

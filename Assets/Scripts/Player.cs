@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Game
+namespace TGM
 {
     public class Player : MonoBehaviour
     {

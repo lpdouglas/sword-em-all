@@ -17,7 +17,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2944570419952854134
 Transform:
   m_ObjectHideFlags: 0
@@ -129,6 +129,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   syncMode: 0
   syncInterval: 0.1
+  isHostOnServer: 0
   player: {fileID: 0}
   ball: {fileID: 6511849364844937226, guid: 94d73c5958dddd34baafe6099d22e466, type: 3}
   playerColor: {r: 0, g: 0, b: 0, a: 0}

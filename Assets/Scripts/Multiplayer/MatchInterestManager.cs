@@ -1,7 +1,7 @@
 using Mirror;
 using System.Collections.Generic;
 
-namespace Game.Multiplayer
+namespace TGM.Multiplayer
 {
     public class MatchInterestManager : InterestManagement
     {

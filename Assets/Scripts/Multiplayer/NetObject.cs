@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Game.Multiplayer
+namespace TGM.Multiplayer
 {
     public class NetObject : MonoBehaviour
     {
@@ -10,6 +10,7 @@ namespace Game.Multiplayer
         public static void ResetNextId() => nextId = 1;
         [SerializeField] private string _assetId;
         [SerializeField, HideInInspector] bool isPrefab;
+        Vector3 previousPosition;
 
         public string assetId => _assetId;
         public Guid guidAssetId { get => (!_cacheAssetId.Equals(Guid.Empty)) ? _cacheAssetId : _cacheAssetId=new Guid(_assetId); }
@@ -19,7 +20,16 @@ namespace Game.Multiplayer
         private void Awake()
         {
             if (id==0) id = GetNextId();
-            Debug.Log("Awake Log id: " + id);
+            previousPosition = transform.position;
+            //Debug.Log("Awake Log id: " + id);            
+        }
+
+        private void Start()
+        {
+            if (!ConnectionPlayer.isHost && GetComponent<Rigidbody>() != null)
+            {
+                GetComponent<Rigidbody>().isKinematic = true;
+            }
         }
 
         private void OnValidate()
@@ -36,6 +46,6 @@ namespace Game.Multiplayer
                 //Debug.Log($"Validate: no changes in assetId: {_assetId}. isPrefab? {Mirror.Utils.IsPrefab(gameObject)}");
             }
             isPrefab = Mirror.Utils.IsPrefab(gameObject);
-        }
+        }        
     }
 }

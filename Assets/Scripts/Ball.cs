@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Game
+namespace TGM
 {
     public class Ball : MonoBehaviour
     {
@@ -17,8 +17,7 @@ namespace Game
 
         void FixedUpdate()
         {
-            if (!isBouncing) rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z).normalized * speed + new Vector3(0, rb.velocity.y, 0);
-            
+            if (!isBouncing) rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z).normalized * speed + new Vector3(0, rb.velocity.y, 0);            
         }
 
 
@@ -31,6 +30,8 @@ namespace Game
                 isBouncing = true;
                 Invoke("StopBounce", 0.3f);
             }
+
+
         }
         void StopBounce()
         {

@@ -144,3 +144,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _assetId: c5a943d5-2609-42f5-aabf-45648442abb9
   isPrefab: 1
+  desactiveWhenNotHost:
+  - {fileID: 6511849364844937333}
+  - {fileID: 6511849364844937328}

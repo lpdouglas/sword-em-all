@@ -1,12 +1,11 @@
-using Game;
+using TGM;
 using Mirror;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Game.Multiplayer
+namespace TGM.Multiplayer
 {
-
     public class ConnectionPlayer : NetworkBehaviour
     {
         public static bool inGame = false;
@@ -15,6 +14,7 @@ namespace Game.Multiplayer
         public Guid matchId;
         float intervalSend = 0.03f;
         float lastInterval;
+        static int spawnBalls = 0;
         public Player player;
         public NetObject ball;
         static Dictionary<uint, Player> playersClients = new Dictionary<uint, Player>();
@@ -44,12 +44,22 @@ namespace Game.Multiplayer
             if (!isLocalPlayer) return;
             
             player.input.x = Input.GetAxis("Horizontal");
-            if (isHost && Input.GetButtonDown("Fire1"))
+            if (Input.GetButtonDown("Submit")) {
+                if (isServer) NetworkManager.singleton.StopHost();
+                else NetworkManager.singleton.StopClient();
+            };
+            if (isHost)
             {
-                NetObject netBall = Instantiate(ball, Vector3.zero, Quaternion.Euler(new Vector3(0, UnityEngine.Random.Range(0,360), 0)));
-                Debug.Log("Pos instantiate log id: "+netBall.id);
-                Spawn(netBall);
-                netObjects.Add(netBall.id, netBall);
+                if (Input.GetButtonDown("Fire1")) spawnBalls++;
+
+                if (spawnBalls > 0)
+                {
+                    spawnBalls--;
+                    NetObject netBall = Instantiate(ball, new Vector3(UnityEngine.Random.Range(-2,2),0.5f, UnityEngine.Random.Range(-2, 2)), Quaternion.Euler(new Vector3(0, UnityEngine.Random.Range(0, 360), 0)));
+                    //Debug.Log("Pos instantiate log id: " + netBall.id);
+                    Spawn(netBall);
+                    netObjects.Add(netBall.id, netBall);
+                }
             }
 
             ///UPDATE MULTIPLAYER
@@ -109,7 +119,6 @@ namespace Game.Multiplayer
                 NetObject netObject1;
                 if (netObjects.TryGetValue(netObjectCmd.id, out netObject1))
                 {
-                    Debug.Log(netObject1);
                     netObject1.transform.position = netObjectCmd.position;
                 }
             }
@@ -169,11 +178,35 @@ namespace Game.Multiplayer
             
         }
 
-        internal static void MakeConnectionHost() => isHost = true;        
+        internal static void MakeHost(bool host)
+        {
+            isHost = host;            
+        }
         void OnChangeVarPlayerColor(Color old, Color color) => ChangePlayerColor(color);
         private void ChangePlayerColor(Color color)
         {
             if (player) player.gameObject.GetComponentInChildren<Renderer>().material.color = color;
+        }
+
+        internal static void StartGame()
+        {
+            inGame = true;
+            if (isHost)
+            {
+                spawnBalls = 2;
+            }
+        }
+
+        public static void OnDisconnect()
+        {
+            Debug.Log("Disconnected");
+            foreach (KeyValuePair<uint, NetObject> netObject in netObjects)
+            {
+                Destroy(netObject.Value.gameObject);
+            }
+            netObjects.Clear();
+            playersClients.Clear();
+            inGame = false;
         }
     }        
 }
